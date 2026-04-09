@@ -1,0 +1,5 @@
+UserController:
+get /user/{id}/info - показать информацию о пользователе
+get /user/{id}/friends - показать друзей
+# get /user/show - показать пользователей в радиусе 1км
+get /user/edit - изменить профиль
