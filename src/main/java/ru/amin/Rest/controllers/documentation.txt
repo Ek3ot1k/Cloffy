@@ -1,5 +1,4 @@
-UserController:
-get /user/{id}/info - показать информацию о пользователе
-get /user/{id}/friends - показать друзей
-# get /user/show - показать пользователей в радиусе 1км
-get /user/edit - изменить профиль
+POST /friends/request/{userId} — отправить заявку
+POST /friends/accept/{userId} — принять
+GET /friends — список друзей
+DELETE /friends/{userId} — удалить

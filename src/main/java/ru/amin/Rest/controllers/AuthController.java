@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -31,8 +32,11 @@ public class AuthController {
     private final UserValidator userValidator;
     private final AuthenticationManager authenticationManager;
 
-
-    public AuthController(ModelMapper modelMapper, RegistrationService registrationService, JWTUtil jwtUtil, UserValidator userValidator, AuthenticationManager authenticationManager) {
+    public AuthController(ModelMapper modelMapper,
+                          RegistrationService registrationService,
+                          JWTUtil jwtUtil,
+                          UserValidator userValidator,
+                          AuthenticationManager authenticationManager) {
         this.modelMapper = modelMapper;
         this.registrationService = registrationService;
         this.jwtUtil = jwtUtil;
@@ -41,18 +45,20 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<Map<String,String>> login(@RequestBody Map<String,String> loginRequest){
-        try{
-            String username=loginRequest.get("name");
-            String password=loginRequest.get("password");
+    public ResponseEntity<Map<String, String>> login(@RequestBody Map<String, String> loginRequest) {
+        try {
+            String username = loginRequest.get("name");
+            String password = loginRequest.get("password");
 
-            Authentication authentication=authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(username,password));
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, password)
+            );
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            String token= jwtUtil.generateToken(username);
+            String token = jwtUtil.generateToken(username);
 
             return ResponseEntity.ok(Map.of("jwt-token", token));
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Map.of("error", "Invalid credentials"));
@@ -61,34 +67,36 @@ public class AuthController {
 
     @PostMapping("/registration")
     public ResponseEntity<?> performRegistration(@RequestBody @Valid UserDTO userDTO,
-                                                  BindingResult bindingResult) {
-        Users user=convertToUser(userDTO);
+                                                 BindingResult bindingResult) {
+        Users user = convertToUser(userDTO);
         userValidator.validate(user, bindingResult);
 
         if (bindingResult.hasErrors()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Ошибка валидации"));
+            String errors = bindingResult.getFieldErrors().stream()
+                    .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                    .collect(Collectors.joining(", "));
+            return ResponseEntity.badRequest().body(Map.of("message", "Ошибка валидации: " + errors));
         }
 
         registrationService.register(user);
-
-        String token=jwtUtil.generateToken(user.getName());
-        return ResponseEntity.ok(Map.of("jwt-token",token));
+        String token = jwtUtil.generateToken(user.getName());
+        return ResponseEntity.ok(Map.of("jwt-token", token));
     }
 
-    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    @ExceptionHandler(HttpMessageNotReadableException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleNotReadable(Exception e) {
         return Map.of("error", "Invalid JSON: " + e.getMessage());
     }
 
-    @ExceptionHandler(org.springframework.web.bind.MethodArgumentNotValidException.class)
+    @ExceptionHandler(MethodArgumentNotValidException.class)
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleValidation(MethodArgumentNotValidException e) {
         return e.getBindingResult().getFieldErrors().stream()
                 .collect(Collectors.toMap(FieldError::getField, FieldError::getDefaultMessage));
     }
 
-//    private Users convertToUser(UserDTO userDTO){
-//        return this.modelMapper.map(userDTO, Users.class);
-//    }
+    private Users convertToUser(UserDTO userDTO) {
+        return modelMapper.map(userDTO, Users.class);
+    }
 }
