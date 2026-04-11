@@ -30,4 +30,9 @@ public class Friendship {
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
     private FriendshipStatus status;
+
+    public Friendship(Users user,Users friend){
+        this.user=user;
+        this.friend=friend;
+    }
 }
