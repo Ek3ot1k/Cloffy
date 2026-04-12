@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test WebSocket Two Users</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+<body>
+<h2>User A</h2>
+<input type="text" id="tokenA" placeholder="JWT Token A" size="60" />
+<button onclick="connectA()">Connect A</button>
+<button onclick="sendLocationA()">Send Location A</button>
+<div id="messagesA" style="border:1px solid blue; margin:10px; padding:10px;"></div>
+
+<h2>User B</h2>
+<input type="text" id="tokenB" placeholder="JWT Token B" size="60" />
+<button onclick="connectB()">Connect B</button>
+<button onclick="sendLocationB()">Send Location B</button>
+<div id="messagesB" style="border:1px solid green; margin:10px; padding:10px;"></div>
+
+<script>
+    let stompA = null;
+    let stompB = null;
+
+    function connectA() {
+        const token = document.getElementById('tokenA').value;
+        if (!token) return;
+        const socket = new SockJS(`http://localhost:8080/ws?token=${token}`);
+        stompA = Stomp.over(socket);
+        stompA.connect({}, function(frame) {
+            logA('Connected');
+            stompA.subscribe('/user/queue/locations', function(msg) {
+                const loc = JSON.parse(msg.body);
+                logA(`RECEIVED: ${loc.lat}, ${loc.lng}`);
+            });
+        });
+    }
+
+    function sendLocationA() {
+        if (!stompA) return;
+        const loc = { lat: 55.75, lng: 37.61, battery: 90 };
+        stompA.send('/app/location', {}, JSON.stringify(loc));
+        logA(`SENT: ${loc.lat}, ${loc.lng}`);
+    }
+
+    function logA(msg) {
+        const div = document.getElementById('messagesA');
+        div.innerHTML += `<div>${msg}</div>`;
+    }
+
+    // Аналогично для B
+    function connectB() {
+        const token = document.getElementById('tokenB').value;
+        if (!token) return;
+        const socket = new SockJS(`http://localhost:8080/ws?token=${token}`);
+        stompB = Stomp.over(socket);
+        stompB.connect({}, function(frame) {
+            logB('Connected');
+            stompB.subscribe('/user/queue/locations', function(msg) {
+                const loc = JSON.parse(msg.body);
+                logB(`RECEIVED: ${loc.lat}, ${loc.lng}`);
+            });
+        });
+    }
+
+    function sendLocationB() {
+        if (!stompB) return;
+        const loc = { lat: 55.76, lng: 37.62, battery: 85 };
+        stompB.send('/app/location', {}, JSON.stringify(loc));
+        logB(`SENT: ${loc.lat}, ${loc.lng}`);
+    }
+
+    function logB(msg) {
+        const div = document.getElementById('messagesB');
+        div.innerHTML += `<div>${msg}</div>`;
+    }
+</script>
+</body>
+</html>

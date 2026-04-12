@@ -1,19 +1,11 @@
 package ru.amin.Rest.controllers;
 
 import org.modelmapper.ModelMapper;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpStatus;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.*;
 import ru.amin.Rest.dto.UserDTO;
-import ru.amin.Rest.entity.Friendship;
 import ru.amin.Rest.entity.Users;
 import ru.amin.Rest.repositories.UserRepository;
-import ru.amin.Rest.util.UserNotEditedException;
-
-import java.util.List;
-import java.util.Optional;
+import ru.amin.Rest.util.UserNotFoundException;
 
 @RestController
 @RequestMapping("/user")
@@ -28,8 +20,9 @@ public class UserController {
     }
 
     @GetMapping("/{id}/info")
-    public UserDTO getUser(@PathVariable("id") int id){
-        return convertToUserDTO(userRepository.findById(id).orElseThrow(null));
+    public UserDTO getUser(@PathVariable("id") int id) {
+        return convertToUserDTO(userRepository.findById(id)
+                .orElseThrow(() -> new UserNotFoundException("Пользователь не найден")));
     }
 
 //    @GetMapping("/{id}/friends")

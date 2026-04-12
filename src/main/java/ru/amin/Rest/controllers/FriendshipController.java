@@ -27,9 +27,10 @@ public class FriendshipController {
         this.friendshipService = friendshipService;
     }
 
+    // Возвращает только дружбы текущего пользователя
     @GetMapping("/allFriends")
-    public List<Friendship> getFriends(){
-        return friendshipRepository.findAll();
+    public List<Friendship> getFriends(@AuthenticationPrincipal UsersDetails usersDetails) {
+        return friendshipService.getAllFriendships(usersDetails.getUser());
     }
 
     @PostMapping("/sendRequest/{id}")

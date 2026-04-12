@@ -20,8 +20,9 @@ public class Location {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private int id;
 
+    // Одна запись на пользователя — текущая геолокация
     @ManyToOne
-    @JoinColumn(name = "user_id",referencedColumnName = "id")
+    @JoinColumn(name = "user_id", referencedColumnName = "id", unique = true)
     private Users user;
 
     @Column(name = "lat")
