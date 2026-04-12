@@ -23,10 +23,19 @@ public class FriendshipService {
     }
 
     public void addFriendRequest(Users user, Users friend) {
+        if (user.getId() == friend.getId()) {
+            throw new UserNotFoundException("Нельзя отправить запрос в друзья самому себе");
+        }
+
         // Нельзя добавить в друзья заблокированного пользователя
         if (blockRepository.isBlockedInAnyDirection(user, friend)) {
             throw new UserNotFoundException("Невозможно отправить запрос этому пользователю");
         }
+
+        if (friendshipRepository.findFriendshipBetween(user, friend).isPresent()) {
+            throw new UserNotFoundException("Запрос в друзья или дружба уже существует");
+        }
+
         Friendship friendship = new Friendship(user, friend);
         friendship.setStatus(FriendshipStatus.PENDING);
         friendshipRepository.save(friendship);
