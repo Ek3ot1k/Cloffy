@@ -2,6 +2,7 @@ package ru.amin.Rest.controllers;
 
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import ru.amin.Rest.dto.MeetRequestCreateDTO;
@@ -21,13 +22,17 @@ public class MeetController {
 
     private final MeetService meetService;
     private final UserRepository userRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
-    public MeetController(MeetService meetService, UserRepository userRepository) {
+    public MeetController(MeetService meetService,
+                          UserRepository userRepository,
+                          SimpMessagingTemplate messagingTemplate) {
         this.meetService = meetService;
         this.userRepository = userRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
-    // Предложить другу точку встречи. Маршрут до неё строит Flutter.
+    // Предложить другу точку встречи. Маршрут до неё строит Swift-клиент.
     @PostMapping("/{receiverId}")
     public ResponseEntity<MeetResponseDTO> requestMeet(@PathVariable int receiverId,
                                                        @RequestBody @Valid MeetRequestCreateDTO dto,
@@ -36,6 +41,10 @@ public class MeetController {
                 .orElseThrow(() -> new UserNotFoundException("Пользователь не найден"));
 
         MeetResponseDTO response = meetService.requestMeet(usersDetails.getUser(), receiver, dto);
+
+        // Уведомляем получателя через WebSocket — он увидит запрос в реальном времени
+        messagingTemplate.convertAndSendToUser(response.getReceiverName(), "/queue/meet-requests", response);
+
         return ResponseEntity.ok(response);
     }
 
@@ -44,6 +53,11 @@ public class MeetController {
     public ResponseEntity<MeetResponseDTO> acceptMeet(@PathVariable int meetId,
                                                       @AuthenticationPrincipal UsersDetails usersDetails) {
         MeetResponseDTO response = meetService.acceptMeet(meetId, usersDetails.getUser());
+
+        // Уведомляем обоих — каждый получает meetLat/meetLng для построения маршрута
+        messagingTemplate.convertAndSendToUser(response.getRequesterName(), "/queue/meet-updates", response);
+        messagingTemplate.convertAndSendToUser(response.getReceiverName(), "/queue/meet-updates", response);
+
         return ResponseEntity.ok(response);
     }
 
@@ -52,6 +66,10 @@ public class MeetController {
     public ResponseEntity<MeetResponseDTO> declineMeet(@PathVariable int meetId,
                                                        @AuthenticationPrincipal UsersDetails usersDetails) {
         MeetResponseDTO response = meetService.declineMeet(meetId, usersDetails.getUser());
+
+        // Уведомляем инициатора об отказе
+        messagingTemplate.convertAndSendToUser(response.getRequesterName(), "/queue/meet-updates", response);
+
         return ResponseEntity.ok(response);
     }
 

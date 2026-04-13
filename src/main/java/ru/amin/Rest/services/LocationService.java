@@ -44,9 +44,8 @@ public class LocationService {
 
         // Обновляем уровень батареи в профиле пользователя
         if (dto.getBatteryLevel() != null) {
-            Users managedUser = userRepository.findById(user.getId()).orElse(user);
-            managedUser.setBatteryLevel(dto.getBatteryLevel());
-            userRepository.save(managedUser);
+            user.setBatteryLevel(dto.getBatteryLevel());
+            userRepository.save(user);
         }
     }
 

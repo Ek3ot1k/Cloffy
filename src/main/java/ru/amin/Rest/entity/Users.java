@@ -71,4 +71,13 @@ public class Users {
     @Column(name = "university")
     private String university;
 
+    // Внутренняя валюта приложения
+    @Column(name = "coins")
+    private int coins = 100;
+
+    // Активная рамка аватара (null — без рамки)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "active_frame_id")
+    private Frame activeFrame;
+
 }

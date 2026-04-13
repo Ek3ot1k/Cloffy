@@ -2,13 +2,17 @@ package ru.amin.Rest.services;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import ru.amin.Rest.dto.ConversationSummaryDTO;
 import ru.amin.Rest.dto.MessageResponseDTO;
 import ru.amin.Rest.entity.Message;
 import ru.amin.Rest.entity.Users;
 import ru.amin.Rest.repositories.MessageRepository;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class MessageService {
@@ -38,6 +42,23 @@ public class MessageService {
                 .stream()
                 .map(this::toDTO)
                 .toList();
+    }
+
+    // Список диалогов: один ConversationSummaryDTO на каждого собеседника (последнее сообщение)
+    public List<ConversationSummaryDTO> getConversations(Users user) {
+        List<Message> messages = messageRepository.findAllByUser(user);
+        // Ключ — id собеседника. LinkedHashMap сохраняет порядок вставки (сначала новейшие)
+        Map<Integer, ConversationSummaryDTO> map = new LinkedHashMap<>();
+        for (Message m : messages) {
+            Users partner = m.getSender().getId() == user.getId() ? m.getReceiver() : m.getSender();
+            map.putIfAbsent(partner.getId(), new ConversationSummaryDTO(
+                    partner.getId(),
+                    partner.getName(),
+                    m.getContent(),
+                    m.getTimestamp()
+            ));
+        }
+        return new ArrayList<>(map.values());
     }
 
     private MessageResponseDTO toDTO(Message message) {

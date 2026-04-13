@@ -3,6 +3,7 @@ package ru.amin.Rest.controllers;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
+import ru.amin.Rest.dto.ConversationSummaryDTO;
 import ru.amin.Rest.dto.MessageDTO;
 import ru.amin.Rest.dto.MessageResponseDTO;
 import ru.amin.Rest.entity.Users;
@@ -60,6 +61,14 @@ public class MessageController {
 
         MessageResponseDTO response = messageService.sendMessage(sender, receiver, messageDTO.getContent());
         return ResponseEntity.ok(response);
+    }
+
+    // Список всех диалогов текущего пользователя (последнее сообщение каждого)
+    @GetMapping("/conversations")
+    public ResponseEntity<List<ConversationSummaryDTO>> getConversations(
+            @AuthenticationPrincipal UsersDetails usersDetails) {
+        Users currentUser = usersDetails.getUser();
+        return ResponseEntity.ok(messageService.getConversations(currentUser));
     }
 
     // Получить историю переписки с пользователем

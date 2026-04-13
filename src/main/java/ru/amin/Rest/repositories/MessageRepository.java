@@ -15,4 +15,8 @@ public interface MessageRepository extends JpaRepository<Message, Integer> {
     // Переписка между двумя пользователями в хронологическом порядке
     @Query("SELECT m FROM Message m WHERE (m.sender = :user AND m.receiver = :other) OR (m.sender = :other AND m.receiver = :user) ORDER BY m.timestamp ASC")
     List<Message> findConversation(@Param("user") Users user, @Param("other") Users other);
+
+    // Все сообщения, где пользователь является отправителем или получателем
+    @Query("SELECT m FROM Message m WHERE m.sender = :user OR m.receiver = :user ORDER BY m.timestamp DESC")
+    List<Message> findAllByUser(@Param("user") Users user);
 }

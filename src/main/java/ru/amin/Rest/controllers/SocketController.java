@@ -3,20 +3,19 @@ package ru.amin.Rest.controllers;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.stereotype.Controller;
 import ru.amin.Rest.dto.ChatMessageDTO;
 import ru.amin.Rest.dto.LocationDTO;
 import ru.amin.Rest.dto.MessageResponseDTO;
 import ru.amin.Rest.entity.Users;
 import ru.amin.Rest.repositories.UserRepository;
-import ru.amin.Rest.security.UsersDetails;
 import ru.amin.Rest.services.FriendshipService;
 import ru.amin.Rest.services.LocationService;
 import ru.amin.Rest.services.MessageService;
 import ru.amin.Rest.services.ProximityService;
 import ru.amin.Rest.util.UserNotFoundException;
 
+import java.security.Principal;
 import java.util.List;
 
 @Controller
@@ -30,10 +29,14 @@ public class SocketController {
     private final UserRepository userRepository;
 
     // Геолокация: сохраняем в БД, рассылаем друзьям, проверяем близость
+    // Используем Principal вместо @AuthenticationPrincipal — в WebSocket-контексте
+    // @AuthenticationPrincipal не разрешается корректно (user = null внутри UsersDetails)
     @MessageMapping("/location")
-    public void handleLocation(LocationDTO locationDTO,
-                               @AuthenticationPrincipal UsersDetails usersDetails) {
-        Users currentUser = usersDetails.getUser();
+    public void handleLocation(LocationDTO locationDTO, Principal principal) {
+        if (principal == null) return;
+
+        Users currentUser = userRepository.findByName(principal.getName())
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + principal.getName()));
 
         locationService.saveOrUpdateLocation(currentUser, locationDTO);
 
@@ -61,9 +64,11 @@ public class SocketController {
 
     // Чат: сохраняем сообщение и доставляем получателю в реальном времени
     @MessageMapping("/chat")
-    public void handleChat(ChatMessageDTO chatMessageDTO,
-                           @AuthenticationPrincipal UsersDetails usersDetails) {
-        Users sender = usersDetails.getUser();
+    public void handleChat(ChatMessageDTO chatMessageDTO, Principal principal) {
+        if (principal == null) return;
+
+        Users sender = userRepository.findByName(principal.getName())
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + principal.getName()));
         Users receiver = userRepository.findById(chatMessageDTO.getReceiverId())
                 .orElseThrow(() -> new UserNotFoundException("Получатель не найден"));
 

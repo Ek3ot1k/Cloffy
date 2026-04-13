@@ -1,10 +1,12 @@
 package ru.amin.Rest.controllers;
 
 import org.modelmapper.ModelMapper;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import ru.amin.Rest.dto.UserDTO;
 import ru.amin.Rest.entity.Users;
 import ru.amin.Rest.repositories.UserRepository;
+import ru.amin.Rest.security.UsersDetails;
 import ru.amin.Rest.util.UserNotFoundException;
 
 @RestController
@@ -17,6 +19,12 @@ public class UserController {
     public UserController(ModelMapper modelMapper, UserRepository userRepository) {
         this.modelMapper = modelMapper;
         this.userRepository = userRepository;
+    }
+
+    // Профиль текущего авторизованного пользователя
+    @GetMapping("/me")
+    public Users getMe(@AuthenticationPrincipal UsersDetails usersDetails) {
+        return usersDetails.getUser();
     }
 
     @GetMapping("/{id}/info")

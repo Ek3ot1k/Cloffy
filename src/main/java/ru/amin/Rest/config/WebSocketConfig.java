@@ -26,9 +26,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
+        // SockJS — для будущего веб-клиента
         registry.addEndpoint("/ws")
                 .setAllowedOriginPatterns("*")
                 .withSockJS();
+        // Нативный WebSocket — для iOS клиента (без SockJS)
+        registry.addEndpoint("/ws-ios")
+                .setAllowedOriginPatterns("*");
     }
 
     // Регистрируем перехватчик JWT для WebSocket

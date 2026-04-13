@@ -23,6 +23,7 @@ public class RegistrationService {
     public void register(Users user) {
         user.setPassword(passwordEncoder.encode(user.getPassword()));
         user.setRole("ROLE_USER");
+        user.setCoins(100); // стартовый бонус при регистрации
         userRepository.save(user);
     }
 }
