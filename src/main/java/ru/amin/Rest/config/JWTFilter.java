@@ -38,7 +38,7 @@ public class JWTFilter extends OncePerRequestFilter {
             String jwt = authHeader.substring(7);
 
             if (jwt.isBlank()) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
                         "Invalid JWT Token");
                 return;
             }
@@ -60,7 +60,7 @@ public class JWTFilter extends OncePerRequestFilter {
                         .setAuthentication(authToken);
 
             } catch (JWTVerificationException ex) {
-                response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
                         "Invalid JWT Token");
                 return;
             }

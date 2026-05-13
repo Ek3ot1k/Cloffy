@@ -1,5 +1,8 @@
 package ru.amin.Rest.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.amin.Rest.dto.FriendLocationDTO;
@@ -11,6 +14,7 @@ import ru.amin.Rest.repositories.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class LocationService {
@@ -19,20 +23,27 @@ public class LocationService {
     private final FriendshipService friendshipService;
     private final BlockService blockService;
     private final UserRepository userRepository;
+    private final RedisTemplate<String, String> redisTemplate;
+    private final ObjectMapper objectMapper;
 
     public LocationService(LocationRepository locationRepository,
                            FriendshipService friendshipService,
                            BlockService blockService,
-                           UserRepository userRepository) {
+                           UserRepository userRepository,
+                           RedisTemplate<String,String> redisTemplate,
+                           ObjectMapper objectMapper) {
         this.locationRepository = locationRepository;
         this.friendshipService = friendshipService;
         this.blockService = blockService;
         this.userRepository = userRepository;
+        this.redisTemplate=redisTemplate;
+        this.objectMapper=objectMapper;
     }
 
     // Сохраняем или обновляем текущую геолокацию + уровень батареи (upsert)
     @Transactional
-    public void saveOrUpdateLocation(Users user, LocationDTO dto) {
+    public void saveOrUpdateLocation(Users user, LocationDTO dto){
+
         Location location = locationRepository.findByUser(user)
                 .orElse(new Location());
 
@@ -41,6 +52,13 @@ public class LocationService {
         location.setLng(dto.getLng());
         location.setTimestamp(LocalDateTime.now());
         locationRepository.save(location);
+        try{
+            String json = objectMapper.writeValueAsString(dto);
+            redisTemplate.opsForValue().set("location:"+user.getId(), json, 60, TimeUnit.SECONDS);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
+
 
         // Обновляем уровень батареи в профиле пользователя
         if (dto.getBatteryLevel() != null) {
@@ -56,16 +74,36 @@ public class LocationService {
                 .filter(friend -> !blockService.isBlocked(currentUser, friend))
                 .toList();
 
-        return locationRepository.findByUserIn(friends)
-                .stream()
-                .map(loc -> new FriendLocationDTO(
-                        loc.getUser().getId(),
-                        loc.getUser().getName(),
-                        loc.getLat(),
-                        loc.getLng(),
-                        loc.getTimestamp(),
-                        loc.getUser().getBatteryLevel()
-                ))
+        return friends.stream().map(friend->{
+            String json=redisTemplate.opsForValue().get("location:"+friend.getId());
+
+            if(json!=null){
+                try{
+                    LocationDTO dto=objectMapper.readValue(json, LocationDTO.class);
+                    return new FriendLocationDTO(
+                            friend.getId(),
+                            friend.getName(),
+                            dto.getLat(),
+                            dto.getLng(),
+                            null,
+                            friend.getBatteryLevel()
+                    );
+                } catch (JsonProcessingException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            return locationRepository.findByUser(friend)
+                    .map(loc->new FriendLocationDTO(
+                            friend.getId(),
+                            friend.getName(),
+                            loc.getLat(),
+                            loc.getLng(),
+                            loc.getTimestamp(),
+                            friend.getBatteryLevel()
+                    )).orElse(null);
+
+        }).filter(dto->dto!=null)
                 .toList();
     }
 }

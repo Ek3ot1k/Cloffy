@@ -17,7 +17,7 @@ public class JWTUtil {
 
     public String generateToken(String username){
 
-        Date expirationDate=Date.from(ZonedDateTime.now().plusMinutes(60).toInstant());
+        Date expirationDate=Date.from(ZonedDateTime.now().plusDays(30).toInstant());
 
         return com.auth0.jwt.JWT.create()
                 .withSubject("User details")
