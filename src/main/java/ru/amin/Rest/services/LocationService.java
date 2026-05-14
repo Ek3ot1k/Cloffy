@@ -2,6 +2,8 @@ package ru.amin.Rest.services;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +20,7 @@ import java.util.concurrent.TimeUnit;
 
 @Service
 public class LocationService {
+    private static final Logger log = LoggerFactory.getLogger(LocationService.class);
 
     private final LocationRepository locationRepository;
     private final FriendshipService friendshipService;
@@ -57,6 +60,9 @@ public class LocationService {
             redisTemplate.opsForValue().set("location:"+user.getId(), json, 60, TimeUnit.SECONDS);
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
+        } catch (Exception e) {
+            // Redis-кэш не должен ломать сохранение локации.
+            log.warn("Failed to cache location for user {}", user.getId(), e);
         }
 
 
@@ -75,7 +81,13 @@ public class LocationService {
                 .toList();
 
         return friends.stream().map(friend->{
-            String json=redisTemplate.opsForValue().get("location:"+friend.getId());
+            String json = null;
+            try {
+                json = redisTemplate.opsForValue().get("location:"+friend.getId());
+            } catch (Exception e) {
+                // Если Redis недоступен, откатываемся на БД.
+                log.warn("Failed to read cached location for user {}", friend.getId(), e);
+            }
 
             if(json!=null){
                 try{
