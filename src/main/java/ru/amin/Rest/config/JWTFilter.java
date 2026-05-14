@@ -12,6 +12,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import ru.amin.Rest.security.JWTUtil;
 import ru.amin.Rest.services.UsersDetailsService;
 import com.auth0.jwt.exceptions.JWTVerificationException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import java.io.IOException;
 
 
@@ -59,7 +60,7 @@ public class JWTFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext()
                         .setAuthentication(authToken);
 
-            } catch (JWTVerificationException ex) {
+            } catch (JWTVerificationException | UsernameNotFoundException ex) {
                 response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
                         "Invalid JWT Token");
                 return;

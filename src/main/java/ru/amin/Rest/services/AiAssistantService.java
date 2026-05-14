@@ -6,12 +6,15 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Map;
 
 @Service
 public class AiAssistantService {
+    private static final Logger log = LoggerFactory.getLogger(AiAssistantService.class);
 
     @Value("${deepseek.api.key}")
     private String apiKey;
@@ -21,6 +24,12 @@ public class AiAssistantService {
 
     @Value("${deepseek.model}")
     private String model;
+
+    @Value("${openrouter.http.referer:}")
+    private String openRouterReferer;
+
+    @Value("${openrouter.x.title:Cloffy}")
+    private String openRouterTitle;
 
     private final RestTemplate restTemplate;
 
@@ -44,6 +53,12 @@ public class AiAssistantService {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         headers.setBearerAuth(apiKey);
+        if (apiUrl != null && apiUrl.contains("openrouter.ai")) {
+            if (openRouterReferer != null && !openRouterReferer.isBlank()) {
+                headers.set("HTTP-Referer", openRouterReferer);
+            }
+            headers.set("X-Title", openRouterTitle);
+        }
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
 
@@ -58,6 +73,7 @@ public class AiAssistantService {
 
             return (String) message.get("content");
         } catch (Exception e) {
+            log.error("AI provider request failed: {}", e.getMessage(), e);
             return "Ассистент временно недоступен. Попробуйте позже.";
         }
     }
@@ -75,6 +91,8 @@ public class AiAssistantService {
                     "Учитывай их при рекомендациях.", lat, lng
             ));
         }
+
+
 
         return prompt.toString();
     }
