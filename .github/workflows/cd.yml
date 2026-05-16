@@ -1,0 +1,68 @@
+name: CD
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up SSH agent
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -p "${{ secrets.SSH_PORT }}" "${{ secrets.SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy on server
+        env:
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_PORT: ${{ secrets.SSH_PORT }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          SPRING_DATASOURCE_URL: ${{ secrets.SPRING_DATASOURCE_URL }}
+          SPRING_DATASOURCE_USERNAME: ${{ secrets.SPRING_DATASOURCE_USERNAME }}
+          SPRING_DATASOURCE_PASSWORD: ${{ secrets.SPRING_DATASOURCE_PASSWORD }}
+          SPRING_DATA_REDIS_HOST: ${{ secrets.SPRING_DATA_REDIS_HOST }}
+          SPRING_DATA_REDIS_PORT: ${{ secrets.SPRING_DATA_REDIS_PORT }}
+          SPRING_JPA_HIBERNATE_DDL_AUTO: ${{ secrets.SPRING_JPA_HIBERNATE_DDL_AUTO }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_API_URL: ${{ secrets.DEEPSEEK_API_URL }}
+          DEEPSEEK_MODEL: ${{ secrets.DEEPSEEK_MODEL }}
+        run: |
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "mkdir -p ~/cloffy"
+
+          scp -P "$SSH_PORT" docker-compose.yml "$SSH_USER@$SSH_HOST:~/cloffy/docker-compose.yml"
+
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cat > ~/cloffy/.env <<EOF
+          POSTGRES_DB=$POSTGRES_DB
+          POSTGRES_USER=$POSTGRES_USER
+          POSTGRES_PASSWORD=$POSTGRES_PASSWORD
+          SPRING_DATASOURCE_URL=$SPRING_DATASOURCE_URL
+          SPRING_DATASOURCE_USERNAME=$SPRING_DATASOURCE_USERNAME
+          SPRING_DATASOURCE_PASSWORD=$SPRING_DATASOURCE_PASSWORD
+          SPRING_DATA_REDIS_HOST=$SPRING_DATA_REDIS_HOST
+          SPRING_DATA_REDIS_PORT=$SPRING_DATA_REDIS_PORT
+          SPRING_JPA_HIBERNATE_DDL_AUTO=$SPRING_JPA_HIBERNATE_DDL_AUTO
+          JWT_SECRET=$JWT_SECRET
+          DEEPSEEK_API_KEY=$DEEPSEEK_API_KEY
+          DEEPSEEK_API_URL=$DEEPSEEK_API_URL
+          DEEPSEEK_MODEL=$DEEPSEEK_MODEL
+          EOF"
+
+          scp -P "$SSH_PORT" -r . "$SSH_USER@$SSH_HOST:~/cloffy/Rest"
+
+          ssh -p "$SSH_PORT" "$SSH_USER@$SSH_HOST" "cd ~/cloffy && docker compose down && docker compose up --build -d"
