@@ -77,7 +77,15 @@
 			<version>3.2.6</version>
 		</dependency>
 
-
+		<!-- Source: https://mvnrepository.com/artifact/org.flywaydb/flyway-core -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-core</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>
