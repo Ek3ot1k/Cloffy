@@ -12,6 +12,9 @@ public interface UserRepository extends JpaRepository<Users, Integer> {
 
     Optional<Users> findByName(String name);
 
+    // Поиск пользователей по нику (частичное совпадение, регистронезависимый)
+    List<Users> findByNameContainingIgnoreCase(String name);
+
     // Поиск по школе (регистронезависимый)
     List<Users> findBySchoolIgnoreCase(String school);
 

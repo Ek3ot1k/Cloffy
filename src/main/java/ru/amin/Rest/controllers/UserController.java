@@ -9,8 +9,10 @@ import ru.amin.Rest.repositories.UserRepository;
 import ru.amin.Rest.security.UsersDetails;
 import ru.amin.Rest.util.UserNotFoundException;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/api/v1/user")
 public class UserController {
 
     private final ModelMapper modelMapper;
@@ -31,6 +33,17 @@ public class UserController {
     public UserDTO getUser(@PathVariable("id") int id) {
         return convertToUserDTO(userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("Пользователь не найден")));
+    }
+
+    // Поиск пользователей по нику (частичное совпадение)
+    @GetMapping("/search")
+    public List<UserDTO> searchUsers(@RequestParam("name") String name,
+                                     @AuthenticationPrincipal UsersDetails usersDetails) {
+        return userRepository.findByNameContainingIgnoreCase(name)
+                .stream()
+                .filter(u -> u.getId() != usersDetails.getUser().getId()) // исключаем себя
+                .map(this::convertToUserDTO)
+                .toList();
     }
 
 //    @GetMapping("/{id}/friends")
