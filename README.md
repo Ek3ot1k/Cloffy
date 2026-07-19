@@ -110,19 +110,9 @@ export JWT_SECRET=your_secret
 
 ---
 
-## How Codex Could Help
-
-Cloffy is a solo project — one developer handling backend, iOS, real-time infrastructure, and deployment. These are areas where Codex could meaningfully accelerate development:
-
-- **Writing unit and integration tests** — the test coverage is minimal right now; Codex could generate tests for services like `FriendshipService`, `LocationService`, and `ProximityService`
-- **Refactoring** — several controllers handle logic that belongs in services; Codex could help clean that up
-- **New features** — group locations, geofencing zones, location history
-- **iOS development** — Codex could help build more complex SwiftUI views and improve WebSocket reliability
-
----
 
 ## Author
 
-Built by Amin Huseynov — a student learning backend and mobile development by shipping real products.
+Built by Amin Huseynov — a student learning backend development by shipping real products.
 
 - GitHub: [@Ek3ot1k](https://github.com/Ek3ot1k)
