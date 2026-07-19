@@ -1,6 +1,7 @@
 package ru.amin.Rest.controllers;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Controller;
@@ -23,9 +24,8 @@ import java.util.List;
 public class SocketController {
     private final SimpMessagingTemplate messagingTemplate;
     private final FriendshipService friendshipService;
-    private final LocationService locationService;
     private final MessageService messageService;
-    private final ProximityService proximityService;
+    private final KafkaTemplate<String, LocationDTO> kafkaTemplate;
     private final UserRepository userRepository;
 
     // Геолокация: сохраняем в БД, рассылаем друзьям, проверяем близость
@@ -38,7 +38,7 @@ public class SocketController {
         Users currentUser = userRepository.findByName(principal.getName())
                 .orElseThrow(() -> new UserNotFoundException("User not found: " + principal.getName()));
 
-        locationService.saveOrUpdateLocation(currentUser, locationDTO);
+        kafkaTemplate.send("location-updates",String.valueOf(currentUser.getId()),locationDTO);
 
         // Рассылаем геолокацию принятым друзьям
         List<Users> friends = friendshipService.getAcceptedFriends(currentUser);
@@ -46,20 +46,7 @@ public class SocketController {
             messagingTemplate.convertAndSendToUser(friend.getName(), "/queue/locations", locationDTO);
         }
 
-        // Проверяем близость с незнакомыми пользователями
-        List<ProximityService.ProximityResult> nearby = proximityService.findNearbyStrangers(
-                currentUser, locationDTO.getLat(), locationDTO.getLng()
-        );
-        for (ProximityService.ProximityResult result : nearby) {
-            // Уведомляем незнакомца о текущем пользователе
-            messagingTemplate.convertAndSendToUser(
-                    result.otherUser().getName(), "/queue/nearby", result.notificationForOther()
-            );
-            // Уведомляем текущего пользователя о незнакомце
-            messagingTemplate.convertAndSendToUser(
-                    currentUser.getName(), "/queue/nearby", result.notificationForCurrent()
-            );
-        }
+
     }
 
     // Чат: сохраняем сообщение и доставляем получателю в реальном времени

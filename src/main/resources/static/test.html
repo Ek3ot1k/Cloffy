@@ -27,7 +27,7 @@
         if (!token) return;
         const socket = new SockJS(`http://localhost:8080/ws?token=${token}`);
         stompA = Stomp.over(socket);
-        stompA.connect({}, function(frame) {
+        stompA.connect({'Authorization': 'Bearer ' + token}, function(frame) {
             logA('Connected');
             stompA.subscribe('/user/queue/locations', function(msg) {
                 const loc = JSON.parse(msg.body);
@@ -54,7 +54,7 @@
         if (!token) return;
         const socket = new SockJS(`http://localhost:8080/ws?token=${token}`);
         stompB = Stomp.over(socket);
-        stompB.connect({}, function(frame) {
+        stompB.connect({'Authorization': 'Bearer ' + token}, function(frame) {
             logB('Connected');
             stompB.subscribe('/user/queue/locations', function(msg) {
                 const loc = JSON.parse(msg.body);
