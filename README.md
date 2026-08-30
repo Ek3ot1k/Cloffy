@@ -1,97 +1,117 @@
 # Cloffy
 
-> Mobile-first web app for sharing location and coordinating with friends in real time.
+> Учебный backend для сервиса геолокации и общения между друзьями в реальном времени.
 
-Cloffy is a full-stack educational project inspired by the social mechanics of location-sharing apps: private friend network, live map, direct chat, short-lived stories and lightweight coordination tools.
+Cloffy — мой full-stack учебный проект. В этом репозитории основная часть — Spring Boot API: аутентификация, социальные сценарии, чат и события реального времени. Проект задумывался как способ собрать не набор отдельных CRUD-эндпоинтов, а связную систему с JWT, WebSocket, базой данных, миграциями и локальной инфраструктурой в Docker.
 
-The goal was to practise building a cohesive real-time system rather than a collection of isolated CRUD endpoints: JWT authentication, REST, STOMP WebSocket events, background location processing and a containerised local environment.
+## Возможности API
 
-## What it does
+- Регистрация, вход по JWT и управление профилем
+- Поиск пользователей, заявки в друзья, дружба и блокировки
+- Передача и получение последних координат друзей
+- Личные сообщения: REST-сохранение и доставка через STOMP WebSocket
+- Посты, комментарии и истории с ограниченным сроком жизни
+- Запросы на встречу и уведомления о близости
+- Монеты, покупка рамок для аватара и выбор активной рамки
+- Опциональный AI-чат с контекстом геолокации
 
-- Authentication with JWT and profile management
-- Search, friend requests, friendship management and blocking
-- Map with the latest shared locations of accepted friends
-- Direct chat: REST persistence plus STOMP delivery in real time
-- Posts, comments and 24-hour stories
-- Meet requests and proximity notifications
-- Coins, purchasable avatar frames and active-frame selection
-- Optional AI chat with location context
+## Стек
 
-## Important product constraints
-
-- Location sharing works only while the web app is open and the browser/OS grants permission. It is not background GPS tracking like a native mobile app.
-- Posts and stories currently accept a direct image URL. File upload storage is not implemented.
-- The AI assistant is optional: without `DEEPSEEK_API_KEY`, the rest of the app works normally.
-
-## Stack
-
-| Layer | Technologies |
+| Часть | Технологии |
 | --- | --- |
-| Web client | React, Vite, React Router, Leaflet, SockJS/STOMP, PWA |
-| Backend | Java 21, Spring Boot 3, Spring Security, JWT, Spring WebSocket |
-| Data & events | PostgreSQL, Flyway, Redis, Kafka |
-| Local environment | Docker Compose |
+| Backend | Java 21, Spring Boot 3, Spring Security, JWT |
+| Real-time | Spring WebSocket, STOMP, Kafka |
+| Данные | PostgreSQL, Flyway, Redis |
+| Окружение | Docker Compose |
 
-## Architecture
+## Архитектура
 
 ```text
-React PWA
-  ├── REST + JWT ─────────────► Spring Boot ───► PostgreSQL
-  └── STOMP WebSocket ────────► Spring broker
-                                      ├── Redis: current locations
-                                      └── Kafka: location events
+Клиент
+  ├── REST + JWT ───────────► Spring Boot ───► PostgreSQL
+  └── STOMP WebSocket ──────► Spring broker
+                                      ├── Redis: актуальные координаты
+                                      └── Kafka: события геолокации
 ```
 
-## Run locally
+## Запуск backend локально
 
-### Prerequisites
+### Требования
 
 - Docker Desktop
 
-### Start
+### 1. Клонировать репозиторий
 
 ```bash
 git clone https://github.com/Ek3ot1k/Cloffy.git
 cd Cloffy
-cp .env.example .env
-docker compose up --build
 ```
 
-Open:
+### 2. Создать локальную конфигурацию
 
-- Web app: <http://localhost:5173>
-- API documentation: <http://localhost:8080/swagger-ui/index.html>
+```bash
+cp .env.example .env
+```
 
-On the first run, Flyway creates the schema and seeds the avatar-frame shop. Register two accounts in separate browser profiles, add them as friends and allow location access to try the map and real-time scenarios.
+В `.env` обязательно задай собственный длинный `JWT_SECRET`. `DEEPSEEK_API_KEY` можно оставить пустым: AI-эндпоинт в этом случае вернёт понятное сообщение, остальные функции API продолжат работать.
 
-To stop the environment:
+### 3. Запустить API и его зависимости
+
+```bash
+docker compose up --build backend
+```
+
+Compose автоматически поднимет PostgreSQL, Redis и Kafka. При первом запуске Flyway создаст схему базы данных и добавит стартовые рамки для магазина.
+
+API будет доступен по адресу <http://localhost:8080>.
+
+### Проверить API
+
+После запуска открой Swagger UI:
+
+<http://localhost:8080/swagger-ui/index.html>
+
+Через него можно зарегистрировать пользователя, получить JWT и проверить REST-эндпоинты. Для WebSocket используется endpoint `/ws-ios` и протокол STOMP.
+
+### Остановить окружение
 
 ```bash
 docker compose down
 ```
 
-## Project structure
+Чтобы остановить и удалить также локальные данные PostgreSQL:
+
+```bash
+docker compose down --volumes
+```
+
+## Структура проекта
 
 ```text
 .
-├── src/                 # Spring Boot application
-├── web/                 # React PWA client
-├── docker-compose.yml   # PostgreSQL, Redis, Kafka, API and web client
-├── Dockerfile           # Backend image
-└── .env.example         # Safe configuration template
+├── src/                 # Исходный код Spring Boot приложения
+├── src/main/resources/db/migration/
+│   └── ...              # Flyway-миграции и начальные данные
+├── docker-compose.yml   # PostgreSQL, Redis, Kafka и backend
+├── Dockerfile           # Образ backend-приложения
+└── .env.example         # Шаблон локальной конфигурации без секретов
 ```
 
-## Backend verification
+## Проверка
 
-The local Compose environment has been smoke-tested from an empty database:
+На чистой локальной базе были вручную проверены:
 
-- registration and JWT authentication;
-- friend request, acceptance and blocking;
-- chat persistence and delivery API;
-- posts, stories and own-post feed visibility;
-- frame purchase, equip and wallet consistency;
-- Flyway bootstrap and seeded shop data.
+- регистрация и JWT-аутентификация;
+- заявки в друзья, принятие заявки и блокировка;
+- сохранение и получение личных сообщений;
+- создание постов и историй;
+- покупка/выбор рамки и обновление баланса;
+- старт миграций Flyway и заполнение магазина начальными данными.
 
-## Author
+## Статус клиентской части
 
-Built by Amin Huseynov as a full-stack backend learning project.
+В репозитории есть экспериментальный web-клиент. Сейчас он не является поддерживаемой или завершённой частью проекта; README описывает только backend и его локальный запуск.
+
+## Автор
+
+Амин Гусейнов — учебный проект по backend-разработке и проектированию real-time систем.
