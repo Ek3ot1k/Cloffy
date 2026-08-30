@@ -38,6 +38,10 @@ public class AiAssistantService {
     }
 
     public String chat(String userMessage, Double lat, Double lng) {
+        if (apiKey == null || apiKey.isBlank()) {
+            return "AI-ассистент не настроен: добавь DEEPSEEK_API_KEY в .env и перезапусти Docker Compose.";
+        }
+
         String systemPrompt = buildSystemPrompt(lat, lng);
 
         // Формируем тело запроса в формате OpenAI-совместимого API DeepSeek

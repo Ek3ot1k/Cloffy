@@ -1,118 +1,97 @@
-# Cloffy — Real-Time Location Sharing App
+# Cloffy
 
-> A Zenly / Blink-inspired location sharing app for iOS, built with Spring Boot and Swift.
+> Mobile-first web app for sharing location and coordinating with friends in real time.
 
----
+Cloffy is a full-stack educational project inspired by the social mechanics of location-sharing apps: private friend network, live map, direct chat, short-lived stories and lightweight coordination tools.
 
-## What is Cloffy?
+The goal was to practise building a cohesive real-time system rather than a collection of isolated CRUD endpoints: JWT authentication, REST, STOMP WebSocket events, background location processing and a containerised local environment.
 
-Cloffy lets you see where your friends are in real time on a map — just like Zenly used to. You get live locations, friend requests, stories, chat, and proximity alerts when a friend is nearby.
+## What it does
 
-The app was built from scratch as a personal project to learn full-stack mobile development — from JWT auth and WebSockets to native iOS UI.
+- Authentication with JWT and profile management
+- Search, friend requests, friendship management and blocking
+- Map with the latest shared locations of accepted friends
+- Direct chat: REST persistence plus STOMP delivery in real time
+- Posts, comments and 24-hour stories
+- Meet requests and proximity notifications
+- Coins, purchasable avatar frames and active-frame selection
+- Optional AI chat with location context
 
----
+## Important product constraints
 
-## Features
+- Location sharing works only while the web app is open and the browser/OS grants permission. It is not background GPS tracking like a native mobile app.
+- Posts and stories currently accept a direct image URL. File upload storage is not implemented.
+- The AI assistant is optional: without `DEEPSEEK_API_KEY`, the rest of the app works normally.
 
-- 📍 **Live location sharing** — friends appear on the map in real time via WebSocket (STOMP)
-- 💬 **Real-time chat** — direct messages delivered instantly via WebSocket
-- 👫 **Friend system** — send, accept, decline friend requests; search users by name
-- 📖 **Stories** — 24-hour stories visible on the map carousel (like Snapchat/Zenly)
-- 🔔 **Proximity alerts** — get notified when a friend is within a set radius
-- 🤝 **Meet requests** — send a "want to meet?" request to a friend with map coordinates
-- 📝 **Posts feed** — share moments with your friends (image + caption)
-- 🤖 **AI Assistant** — ask questions with optional location context (powered by DeepSeek)
-- 🪙 **Wallet & Shop** — earn coins, buy and equip avatar frames
-- 🔒 **Block system** — block and unblock users
-- 🎓 **Education profile** — add school/university, find classmates
-- 🌍 **Localization** — full Russian and English support
+## Stack
 
----
-
-## Tech Stack
-
-### Backend
-| Technology | Purpose |
-|---|---|
-| Java 21 + Spring Boot 3 | REST API |
-| Spring Security + JWT | Authentication |
-| Spring WebSocket (STOMP) | Real-time location & chat |
-| PostgreSQL + Flyway | Database & migrations |
-| Redis | Caching & proximity tracking |
-| Docker | Containerization |
-| Railway | Cloud deployment |
-
-### Mobile (iOS)
-| Technology | Purpose |
-|---|---|
-| Swift + SwiftUI | Native iOS UI |
-| MapKit | Interactive map |
-| CoreLocation | Device GPS |
-| URLSessionWebSocketTask | STOMP over WebSocket |
-
----
+| Layer | Technologies |
+| --- | --- |
+| Web client | React, Vite, React Router, Leaflet, SockJS/STOMP, PWA |
+| Backend | Java 21, Spring Boot 3, Spring Security, JWT, Spring WebSocket |
+| Data & events | PostgreSQL, Flyway, Redis, Kafka |
+| Local environment | Docker Compose |
 
 ## Architecture
 
-```
-iOS App (SwiftUI)
-    │
-    ├── REST API ──────► Spring Boot ──► PostgreSQL
-    │   (JWT auth)                  └──► Redis
-    │
-    └── WebSocket ─────► STOMP Broker
-                              ├── /user/queue/locations
-                              ├── /user/queue/messages
-                              ├── /user/queue/nearby
-                              └── /user/queue/meet-requests
+```text
+React PWA
+  ├── REST + JWT ─────────────► Spring Boot ───► PostgreSQL
+  └── STOMP WebSocket ────────► Spring broker
+                                      ├── Redis: current locations
+                                      └── Kafka: location events
 ```
 
----
-
-## API
-
-Full interactive API documentation available at:
-
-```
-https://cloffy-production.up.railway.app/swagger-ui/index.html
-```
-
-Key endpoint groups:
-- `POST /api/v1/auth/login` — authenticate and get JWT
-- `GET /api/v1/location/friends` — get all friends' locations
-- `GET /api/v1/posts/friends` — friends' posts feed
-- `POST /api/v1/ai/chat` — AI assistant with optional geo context
-- `WS /ws-ios` — WebSocket endpoint for real-time events
-
----
-
-## Running Locally
+## Run locally
 
 ### Prerequisites
-- Java 21
-- PostgreSQL
-- Redis
 
-### Steps
+- Docker Desktop
+
+### Start
 
 ```bash
 git clone https://github.com/Ek3ot1k/Cloffy.git
 cd Cloffy
-
-# Set environment variables
-export SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/cloffy
-export SPRING_DATASOURCE_USERNAME=postgres
-export SPRING_DATASOURCE_PASSWORD=postgres
-export JWT_SECRET=your_secret
-
-./mvnw spring-boot:run
+cp .env.example .env
+docker compose up --build
 ```
 
----
+Open:
 
+- Web app: <http://localhost:5173>
+- API documentation: <http://localhost:8080/swagger-ui/index.html>
+
+On the first run, Flyway creates the schema and seeds the avatar-frame shop. Register two accounts in separate browser profiles, add them as friends and allow location access to try the map and real-time scenarios.
+
+To stop the environment:
+
+```bash
+docker compose down
+```
+
+## Project structure
+
+```text
+.
+├── src/                 # Spring Boot application
+├── web/                 # React PWA client
+├── docker-compose.yml   # PostgreSQL, Redis, Kafka, API and web client
+├── Dockerfile           # Backend image
+└── .env.example         # Safe configuration template
+```
+
+## Backend verification
+
+The local Compose environment has been smoke-tested from an empty database:
+
+- registration and JWT authentication;
+- friend request, acceptance and blocking;
+- chat persistence and delivery API;
+- posts, stories and own-post feed visibility;
+- frame purchase, equip and wallet consistency;
+- Flyway bootstrap and seeded shop data.
 
 ## Author
 
-Built by Amin Huseynov — a student learning backend development by shipping real products.
-
-- GitHub: [@Ek3ot1k](https://github.com/Ek3ot1k)
+Built by Amin Huseynov as a full-stack backend learning project.

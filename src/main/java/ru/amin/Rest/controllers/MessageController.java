@@ -2,6 +2,7 @@ package ru.amin.Rest.controllers;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.web.bind.annotation.*;
 import ru.amin.Rest.dto.ConversationSummaryDTO;
 import ru.amin.Rest.dto.MessageDTO;
@@ -25,15 +26,18 @@ public class MessageController {
     private final UserRepository userRepository;
     private final FriendshipService friendshipService;
     private final BlockService blockService;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public MessageController(MessageService messageService,
                              UserRepository userRepository,
                              FriendshipService friendshipService,
-                             BlockService blockService) {
+                             BlockService blockService,
+                             SimpMessagingTemplate messagingTemplate) {
         this.messageService = messageService;
         this.userRepository = userRepository;
         this.friendshipService = friendshipService;
         this.blockService = blockService;
+        this.messagingTemplate = messagingTemplate;
     }
 
     // Отправить сообщение (только друзьям, не заблокированным)
@@ -60,6 +64,8 @@ public class MessageController {
         }
 
         MessageResponseDTO response = messageService.sendMessage(sender, receiver, messageDTO.getContent());
+        messagingTemplate.convertAndSendToUser(receiver.getName(), "/queue/messages", response);
+        messagingTemplate.convertAndSendToUser(sender.getName(), "/queue/messages", response);
         return ResponseEntity.ok(response);
     }
 

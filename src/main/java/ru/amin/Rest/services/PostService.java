@@ -51,10 +51,10 @@ public class PostService {
 
     // Лента постов друзей (новые первые)
     public List<PostResponseDTO> getFriendsPosts(Users currentUser) {
-        List<Users> friends = friendshipService.getAcceptedFriends(currentUser);
-        if (friends.isEmpty()) return List.of();
+        List<Users> authors = new java.util.ArrayList<>(friendshipService.getAcceptedFriends(currentUser));
+        authors.add(currentUser);
 
-        return postRepository.findByUserInOrderByCreatedAtDesc(friends)
+        return postRepository.findByUserInOrderByCreatedAtDesc(authors)
                 .stream()
                 .map(post -> toDTO(post, currentUser))
                 .toList();

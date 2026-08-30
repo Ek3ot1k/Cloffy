@@ -23,7 +23,7 @@ public class Story {
     @JoinColumn(name = "user_id", referencedColumnName = "id")
     private Users user;
 
-    @Column(name = "image_url")
+    @Column(name = "image_url", length = 2048)
     private String imageUrl;
 
     @Column(name = "caption")

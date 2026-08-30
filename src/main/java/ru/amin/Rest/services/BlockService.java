@@ -6,6 +6,7 @@ import ru.amin.Rest.dto.CommentResponseDTO;
 import ru.amin.Rest.entity.Block;
 import ru.amin.Rest.entity.Users;
 import ru.amin.Rest.repositories.BlockRepository;
+import ru.amin.Rest.repositories.FriendshipRepository;
 import ru.amin.Rest.util.UserNotFoundException;
 
 import java.util.List;
@@ -14,9 +15,11 @@ import java.util.List;
 public class BlockService {
 
     private final BlockRepository blockRepository;
+    private final FriendshipRepository friendshipRepository;
 
-    public BlockService(BlockRepository blockRepository) {
+    public BlockService(BlockRepository blockRepository, FriendshipRepository friendshipRepository) {
         this.blockRepository = blockRepository;
+        this.friendshipRepository = friendshipRepository;
     }
 
     @Transactional
@@ -25,6 +28,8 @@ public class BlockService {
             return; // уже заблокирован
         }
         blockRepository.save(new Block(blocker, blocked));
+        friendshipRepository.findFriendshipBetween(blocker, blocked)
+                .ifPresent(friendshipRepository::delete);
     }
 
     @Transactional

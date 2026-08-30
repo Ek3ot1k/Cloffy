@@ -76,7 +76,7 @@ public class Users {
     private int coins = 100;
 
     // Активная рамка аватара (null — без рамки)
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "active_frame_id")
     private Frame activeFrame;
 

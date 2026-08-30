@@ -83,10 +83,11 @@ public class ShopService {
     }
 
     // Купленные рамки пользователя
+    @Transactional(readOnly = true)
     public List<Frame> getMyFrames(Users currentUser) {
         Users user = userRepository.findById(currentUser.getId())
                 .orElseThrow(() -> new UserNotFoundException("Пользователь не найден"));
-        return userFrameRepository.findByUser(user)
+        return userFrameRepository.findByUserWithFrame(user)
                 .stream()
                 .map(UserFrame::getFrame)
                 .toList();
